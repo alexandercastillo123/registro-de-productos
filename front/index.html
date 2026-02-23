@@ -1,122 +1,171 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CONTROL DE PRODUCTOS</title>
+    <title>Control de Productos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <h2>Registrar Producto</h2>
-    <form id="formularioRegistro">
-        <input type="text" id="nombre" placeholder="Nombre" required><br><br>
-        <input type="text" id="descripcion" placeholder="Descripcion" required><br><br>
-        <input type="number" step="0.01" id="precio" placeholder="Precio" required><br><br>
-        <button type="submit">Registrar Producto</button>
-    </form>
-    <br>
 
-    <h2>Actualizar Producto</h2>
-    <form id="formularioActualizacion">
-        <input type="number" id="Actualizar_id_producto" placeholder="Id Producto" required><br><br>
-        <input type="text" id="ActualizarNombre" placeholder="Nuevo Nombre" required><br><br>
-        <input type="text" id="ActualizarDescripcion" placeholder="Nueva Descripcion" required><br><br>
-        <input type="number" step="0.01" id="ActualizarPrecio" placeholder="Nuevo Precio" required><br><br>
-        <button type="submit">Actualizar Producto</button>
-    </form>
-    <br>
+<body class="bg-gray-100 min-h-screen text-gray-800 font-sans antialiased p-6">
 
-    <h2>Eliminar Producto</h2>
-    <form id="formularioEliminacion">
-        <input type="number" id="id_eliminar" placeholder="Id Producto" required><br><br>
-        <button type="submit">Eliminar Producto</button>
-    </form>
-    <br>
+    <div class="container mx-auto">
+        <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+            <h2 class="text-2xl font-bold text-slate-700">Control de Productos - CRUD con MySQL</h2>
+            <div class="flex gap-2 w-full md:w-auto">
+                <input type="text" id="filtroTexto" onkeyup="filtrarProductos()" placeholder="Buscar producto..."
+                    class="border p-2 rounded-lg w-full md:w-64 focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
+                <button onclick="abrirFormulario('crear')"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-md transition-all whitespace-nowrap">+
+                    Nuevo Producto</button>
+            </div>
+        </div>
 
-    <h2>Lista de Productos</h2>
-    <button onclick="listarProductos()">Cargar / Actualizar Lista</button><br><br>
-    <table id="tablaProductos" border="1">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>Nombre</th>
-                <th>Descripción</th>
-                <th>Precio</th>
-                <th>Fecha</th>
-            </tr>
-        </thead>
-        <tbody id="cuerpoTabla"></tbody>
-    </table>
+        <div class="overflow-x-auto bg-white rounded-xl shadow-md border border-gray-200">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-gray-50 border-b border-gray-200 text-gray-600">
+                    <tr>
+                        <th class="p-4 font-semibold">ID</th>
+                        <th class="p-4 font-semibold">Nombre</th>
+                        <th class="p-4 font-semibold">Categoría</th>
+                        <th class="p-4 font-semibold">Descripción</th>
+                        <th class="p-4 font-semibold text-right">Precio</th>
+                        <th class="p-4 font-semibold text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpoTabla" class="divide-y divide-gray-100"></tbody>
+            </table>
+        </div>
+
+        <div id="modalFormulario"
+            class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
+            <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md transform transition-all">
+                <h3 id="tituloModal" class="text-2xl font-bold text-gray-800 mb-4">Crear Producto</h3>
+                <form id="formProducto" class="space-y-4">
+                    <div id="campoId" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700">ID del Producto</label>
+                        <input type="number" id="id_producto" readonly
+                            class="w-full bg-gray-100 p-2 rounded-lg border border-gray-300">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Nombre</label>
+                        <input type="text" id="nombre" required class="w-full border p-2 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Descripción</label>
+                        <input type="text" id="descripcion" required class="w-full border p-2 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Precio (S/.)</label>
+                        <input type="number" step="0.01" min="0" id="precio" required
+                            class="w-full border p-2 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Categoría</label>
+                        <select id="id_categoria" required class="w-full border p-2 rounded-lg"></select>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-4">
+                        <button type="button" onclick="cerrarFormulario()"
+                            class="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium">Cancelar</button>
+                        <button type="submit"
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script>
+        const API_URL = 'http://localhost:3000';
+        let listaCompleta = [];
 
-        document.getElementById('formularioRegistro').addEventListener('submit', async (e) => {
+        async function abrirFormulario(modo, p = null) {
+            await cargarCategorias();
+            document.getElementById('formProducto').reset();
+            document.getElementById('campoId').classList.toggle('hidden', modo === 'crear');
+            document.getElementById('tituloModal').innerText = modo === 'crear' ? 'Nuevo Producto' : 'Editar Producto';
+            document.getElementById('formProducto').dataset.modo = modo;
+
+            if (p) {
+                document.getElementById('id_producto').value = p.id_producto;
+                document.getElementById('nombre').value = p.nombre;
+                document.getElementById('descripcion').value = p.descripcion;
+                document.getElementById('precio').value = p.precio;
+                document.getElementById('id_categoria').value = p.id_categoria;
+            }
+            document.getElementById('modalFormulario').classList.remove('hidden');
+        }
+
+        function cerrarFormulario() { document.getElementById('modalFormulario').classList.add('hidden'); }
+
+        async function listarProductos() {
+            const res = await fetch(`${API_URL}/listar`);
+            listaCompleta = await res.json();
+            renderizarTabla(listaCompleta);
+        }
+
+        async function cargarCategorias() {
+            const res = await fetch(`${API_URL}/categorias`);
+            const cats = await res.json();
+            const select = document.getElementById('id_categoria');
+            select.innerHTML = '<option value="">Selecciona...</option>';
+            cats.forEach(c => select.innerHTML += `<option value="${c.id_categoria}">${c.nombre_categoria}</option>`);
+        }
+
+        function renderizarTabla(productos) {
+            const cuerpo = document.getElementById('cuerpoTabla');
+            cuerpo.innerHTML = '';
+            productos.forEach(p => {
+                cuerpo.innerHTML += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="p-4 text-gray-400">#${p.id_producto}</td>
+                        <td class="p-4 font-bold text-gray-800">${p.nombre}</td>
+                        <td class="p-4"><span class="px-2 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full border border-blue-200 uppercase">${p.nombre_categoria || 'Otros'}</span></td>
+                        <td class="p-4 text-gray-600">${p.descripcion}</td>
+                        <td class="p-4 text-right font-bold text-gray-900">S/. ${p.precio.toFixed(2)}</td>
+                        <td class="p-4 text-center">
+                            <div class="flex justify-center gap-3">
+                                <button onclick='abrirFormulario("editar", ${JSON.stringify(p)})' class="text-blue-600 hover:underline font-medium">Actualizar</button>
+                                <button onclick="eliminarProducto(${p.id_producto})" class="text-red-500 hover:underline font-medium">Eliminar</button>
+                            </div>
+                        </td>
+                    </tr>`;
+            });
+        }
+
+        document.getElementById('formProducto').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const modo = e.target.dataset.modo;
             const datos = {
                 nombre: document.getElementById('nombre').value,
                 descripcion: document.getElementById('descripcion').value,
-                precio: document.getElementById('precio').value
+                precio: document.getElementById('precio').value,
+                id_categoria: document.getElementById('id_categoria').value
             };
-            const res = await fetch(`http://localhost:3000/registrar`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(datos)
+            if (modo === 'editar') datos.id_producto = document.getElementById('id_producto').value;
+
+            await fetch(API_URL + (modo === 'crear' ? '/registrar' : '/actualizar'), {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
             });
-            const result = await res.json();
-            alert(result.message || result.error);
+            cerrarFormulario();
             listarProductos();
         });
 
-        document.getElementById('formularioActualizacion').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const datos = {
-                id_producto: document.getElementById('Actualizar_id_producto').value,
-                nombre: document.getElementById('ActualizarNombre').value,
-                descripcion: document.getElementById('ActualizarDescripcion').value,
-                precio: document.getElementById('ActualizarPrecio').value
-            };
-            const res = await fetch(`http://localhost:3000/actualizar`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(datos)
-            });
-            const result = await res.json();
-            alert(result.message || result.error);
-            listarProductos();
-        });
+        async function eliminarProducto(id) {
+            if (confirm('¿Eliminar?')) {
+                await fetch(`${API_URL}/eliminar`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id_producto: id }) });
+                listarProductos();
+            }
+        }
 
-        document.getElementById('formularioEliminacion').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('id_eliminar').value;
-            const res = await fetch(`http://localhost:3000/eliminar`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ id_producto: id })
-            });
-            const result = await res.json();
-            alert(result.message || result.error);
-            listarProductos();
-        });
-
-        async function listarProductos() {
-            const res = await fetch(`http://localhost:3000/listar`);
-            const productos = await res.json();
-            const cuerpo = document.getElementById('cuerpoTabla');
-            cuerpo.innerHTML = '';
-
-            productos.forEach(p => {
-                cuerpo.innerHTML += `
-                    <tr>
-                        <td>${p.id_producto}</td>
-                        <td>${p.nombre}</td>
-                        <td>${p.descripcion}</td>
-                        <td>${p.precio}</td>
-                        <td>${p.fecha_registro}</td>
-                    </tr>
-                `;
-            });
+        function filtrarProductos() {
+            const texto = document.getElementById('filtroTexto').value.toLowerCase().trim();
+            renderizarTabla(listaCompleta.filter(p => p.nombre.toLowerCase().includes(texto) || p.id_producto.toString().includes(texto) || p.descripcion.toLowerCase().includes(texto) || (p.nombre_categoria && p.nombre_categoria.toLowerCase().includes(texto))));
         }
 
         listarProductos();
     </script>
 </body>
+
 </html>

@@ -1,63 +1,80 @@
 const express = require('express');
 const database = require('./db');
 const cors = require('cors');
-const conexion = require('./db');
 const app = express();
 
 app.use(express.json());
 app.use(cors());
 
+// el get pa listar los productos profe
 app.get('/listar', (req, res) => {
     const sql = 'CALL listar_productos()';
 
     database.query(sql, (error, results) => {
         if (error) {
-            console.error("Error en SQL:", error);
-            return res.status(500).json({ error: 'Error al obtener productos' });
+            console.error("Error al listar:", error);
+            return res.status(500).json({ error: 'No se pudo obtener la lista de productos' });
         }
-        res.json(results[0]); 
+        res.json(results[0]);
     });
 });
 
+// el get pa listar las categorías profe
+app.get('/categorias', (req, res) => {
+    const sql = 'CALL listar_categorias()';
 
+    database.query(sql, (error, results) => {
+        if (error) {
+            console.error("Error al listar categorías:", error);
+            return res.status(500).json({ error: 'No se pudo obtener las categorías' });
+        }
+        res.json(results[0]);
+    });
+});
+
+// el post pa registrar los productos profe
 app.post('/registrar', (req, res) => {
-    const { nombre, descripcion, precio } = req.body;
-    const sql = 'CALL registrar_productos(?, ?, ?)';
+    const { nombre, descripcion, precio, id_categoria } = req.body;
+    const sql = 'CALL registrar_productos(?, ?, ?, ?)';
 
-    database.query(sql, [ nombre, descripcion, precio], (error, results) => {
+    database.query(sql, [nombre, descripcion, precio, id_categoria], (error, results) => {
         if (error) {
-            return res.status(500).json({ error: 'Error en la creación del producto' });
+            console.error("Error al registrar:", error);
+            return res.status(500).json({ error: 'Error al crear el producto' });
         }
-        res.json({ message: "Registro exitoso del producto" });
+        res.json({ message: "¡Producto registrado con éxito!" });
     });
 });
 
-
-
+// el post pa actualizar los productos profe
 app.post('/actualizar', (req, res) => {
-    const { id_producto, nombre, descripcion, precio } = req.body;
-    const sql = 'CALL editar_productos(?, ?, ?, ?)';
+    const { id_producto, nombre, descripcion, precio, id_categoria } = req.body;
+    const sql = 'CALL editar_productos(?, ?, ?, ?, ?)';
 
-    database.query(sql, [id_producto, nombre, descripcion, precio], (error, results) => {
+    database.query(sql, [id_producto, nombre, descripcion, precio, id_categoria], (error, results) => {
         if (error) {
-            return res.status(500).json({ error: 'Error en la acctualizacion del producto' });
+            console.error("Error al actualizar:", error);
+            return res.status(500).json({ error: 'Error al actualizar el producto' });
         }
-        res.json({ message: "Actualizacion exitoso del producto" });
+        res.json({ message: "¡Producto actualizado correctamente!" });
     });
 });
 
+// el post pa eliminar los productos profe
 app.post('/eliminar', (req, res) => {
     const { id_producto } = req.body;
     const sql = 'CALL eliminar_producto(?)';
 
     database.query(sql, [id_producto], (error, results) => {
         if (error) {
-            return res.status(500).json({ error: 'Error en la creación del producto' });
+            console.error("Error al eliminar:", error);
+            return res.status(500).json({ error: 'Error al eliminar el producto' });
         }
-        res.json({ message: "Eliminacion exitosa del producto" });
+        res.json({ message: "Producto eliminado" });
     });
 });
 
 const PORT = 3000;
 app.listen(PORT, () => {
-    console.log(`servidor corriendo en http://localhost:${PORT}`);});
+    console.log(`Servidor listo en http://localhost:${PORT}`);
+});
